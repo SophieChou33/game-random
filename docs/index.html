@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>猜詞遊戲 (Guess the Word)</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- App Container -->
+    <div id="app">
+        
+        <!-- Home Screen -->
+        <section id="home-screen" class="screen active">
+            <header class="app-header home-header">
+                <h1>我的題本</h1>
+                <div class="header-controls">
+                    <button id="home-theme-toggle" class="icon-btn" aria-label="切換主題">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <div id="book-grid" class="book-grid">
+                    <!-- Book Cards injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Welcome Screen (Book Detail) -->
+        <section id="welcome-screen" class="screen">
+            <header class="app-header">
+                <button id="back-home-btn" class="icon-btn" aria-label="返回首頁">
+                    <span class="material-symbols-rounded">arrow_back</span>
+                </button>
+                <div class="header-controls">
+                    <button id="detail-theme-toggle" class="icon-btn" aria-label="切換主題">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <div class="toolbar">
+                    <div class="topic-book-header">
+                        <div class="editable-title-container">
+                            <h2 id="topic-title">題本名稱</h2>
+                        </div>
+                    </div>
+                    <div class="actions-right">
+                        <button id="select-all-btn" class="text-btn">全選</button>
+                        <div class="view-toggles">
+                            <button class="view-btn active" data-view="board" aria-label="看板模式">
+                                <span class="material-symbols-rounded">grid_view</span>
+                            </button>
+                            <button class="view-btn" data-view="list" aria-label="清單模式">
+                                <span class="material-symbols-rounded">view_list</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="topic-container" class="topic-grid">
+                    <!-- Topics will be injected here -->
+                </div>
+            </div>
+
+            <div class="bottom-action">
+                <div class="selection-info">已選擇 <span id="selected-count">0</span> 個題目</div>
+                <button id="start-btn" class="primary-btn" disabled>
+                    <span class="material-symbols-rounded">play_arrow</span>
+                    開始遊戲
+                </button>
+            </div>
+        </section>
+
+        <!-- Game Screen -->
+        <section id="game-screen" class="screen">
+            <header class="game-header">
+                <button id="exit-btn" class="icon-btn" aria-label="結束遊戲">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+                <div class="game-progress">
+                    <span id="current-index">0</span> / <span id="total-count">0</span>
+                </div>
+                <button id="game-theme-toggle" class="icon-btn" aria-label="切換主題">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                </button>
+            </header>
+
+            <div class="game-card-container">
+                <div id="card" class="game-card">
+                    <div class="card-content">
+                        <h1 id="word-display">準備中...</h1>
+                    </div>
+                </div>
+                <div class="tutorial-overlay">
+                    <div class="tutorial-left"><span class="material-symbols-rounded">arrow_back</span> 上一題</div>
+                    <div class="tutorial-right">下一題 <span class="material-symbols-rounded">arrow_forward</span></div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
