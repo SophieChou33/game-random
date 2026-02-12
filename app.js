@@ -13,7 +13,7 @@ const state = {
   // Game State
   game: {
     active: false,
-    history: [],
+    playlist: [],
     currentIndex: -1,
   },
 };
@@ -382,11 +382,16 @@ function startGame() {
   if (state.selectedIndices.size === 0) return;
 
   state.game.active = true;
-  state.game.history = [];
+
+  // Create playlist from selected indices
+  const pool = Array.from(state.selectedIndices).map(
+    (idx) => state.activeBook.words[idx],
+  );
+  state.game.playlist = shuffle(pool);
   state.game.currentIndex = -1;
 
   // UI Update
-  dom.totalCountEl.textContent = "∞";
+  dom.totalCountEl.textContent = state.game.playlist.length;
   navigateTo("game");
 
   nextQuestion();
@@ -400,14 +405,16 @@ function exitGame() {
 }
 
 function nextQuestion() {
-  if (state.game.currentIndex < state.game.history.length - 1) {
+  if (state.game.currentIndex < state.game.playlist.length - 1) {
     state.game.currentIndex++;
+    updateCardUI();
   } else {
-    const word = getRandomWord();
-    state.game.history.push(word);
-    state.game.currentIndex++;
+    // End of game or just stop
+    // Optional: Show a "Finished" card or loop? User said "Stop the game (or handling end state) when all questions have been shown."
+    // For now, let's just not advance.
+    // Maybe show a simple alert or visual cue?
+    // Let's just do nothing if at the end for now, to follow "don't loop" strictly.
   }
-  updateCardUI();
 }
 
 function prevQuestion() {
@@ -417,23 +424,31 @@ function prevQuestion() {
   }
 }
 
-function getRandomWord() {
-  const pool = Array.from(state.selectedIndices);
-  let available = pool;
-  if (state.game.history.length > 0 && pool.length > 1) {
-    const current = state.game.history[state.game.currentIndex].term;
-    available = pool.filter(
-      (idx) => state.activeBook.words[idx].term !== current,
-    );
-  }
-  const idx = available[Math.floor(Math.random() * available.length)];
-  return state.activeBook.words[idx];
-}
-
 function updateCardUI() {
-  const w = state.game.history[state.game.currentIndex];
+  const w = state.game.playlist[state.game.currentIndex];
   dom.wordDisplay.textContent = w.term;
   dom.curIndexEl.textContent = state.game.currentIndex + 1;
+}
+
+// Fisher-Yates Shuffle
+function shuffle(array) {
+  let currentIndex = array.length,
+    randomIndex;
+
+  // While there remain elements to shuffle.
+  while (currentIndex != 0) {
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+
+  return array;
 }
 
 // Swipe Logic (Reused)

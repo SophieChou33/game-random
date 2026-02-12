@@ -392,8 +392,8 @@ h1 {
 .game-card {
     background: var(--card-bg);
     border-radius: 30px;
-    width: max-content; 
-    min-width: 60vw;
+    width: 80dvw; 
+    min-width: unset;
     flex-shrink: 0; 
     aspect-ratio: auto;
     height: 65dvh; /* Increased from 65dvh */
@@ -401,7 +401,7 @@ h1 {
     align-items: center;
     justify-content: center;
     box-shadow: var(--card-shadow);
-    padding: 1rem 3rem; /* Adjusted padding */
+    padding: 1rem; /* Adjusted padding */
     position: relative;
     cursor: grab;
     user-select: none;
@@ -440,7 +440,8 @@ h1 {
     margin: 0; 
     letter-spacing: 0.1em;
     font-weight: 800;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: break-word;
 }
 
 /* Tutorial Overlay in Game */
