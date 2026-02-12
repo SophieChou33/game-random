@@ -39,6 +39,7 @@ const dom = {
   selectAllBtn: document.getElementById("select-all-btn"),
   selectedCountEl: document.getElementById("selected-count"),
   startBtn: document.getElementById("start-btn"),
+  resumeBtn: document.getElementById("resume-btn"), // New Resume Button
 
   // Game
   exitBtn: document.getElementById("exit-btn"),
@@ -208,6 +209,47 @@ const CSVFetcher = {
   },
 };
 
+// --- Storage Manager (Resume Functionality) ---
+const StorageManager = {
+  getStorageKey(bookId) {
+    return `guess_game_progress_${bookId}`;
+  },
+
+  saveProgress(bookId, playlist, currentIndex, originalIndices) {
+    const data = {
+      playlist,
+      currentIndex,
+      originalIndices: Array.from(originalIndices), // Convert Set to Array
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(this.getStorageKey(bookId), JSON.stringify(data));
+  },
+
+  loadProgress(bookId) {
+    const json = localStorage.getItem(this.getStorageKey(bookId));
+    if (!json) return null;
+    try {
+      const data = JSON.parse(json);
+      // Validate data integrity
+      if (
+        !data.playlist ||
+        !Array.isArray(data.playlist) ||
+        typeof data.currentIndex !== "number"
+      ) {
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error("Failed to parse game progress", e);
+      return null;
+    }
+  },
+
+  clearProgress(bookId) {
+    localStorage.removeItem(this.getStorageKey(bookId));
+  },
+};
+
 // --- Navigation ---
 function navigateTo(screenName) {
   Object.values(dom.screens).forEach((el) => el.classList.remove("active"));
@@ -248,14 +290,48 @@ async function openBook(bookId) {
   if (!book) return;
 
   state.activeBook = book;
-  state.selectedIndices.clear();
   state.viewMode = "board"; // Reset to board
 
   // Update UI
   dom.topicTitle.textContent = book.title;
 
-  renderTopicList();
+  updateWelcomeUI(bookId);
+
   navigateTo("welcome");
+}
+
+function updateWelcomeUI(bookId) {
+  // Check for existing progress
+  const progress = StorageManager.loadProgress(bookId);
+
+  // Restore selection if progress exists, otherwise clear
+  // Note: If we are just refreshing (like in exitGame), we might want to keep current selection
+  // if no progress exists? But here we strictly sync with storage or clear if new.
+  if (progress && progress.originalIndices) {
+    state.selectedIndices = new Set(progress.originalIndices);
+  } else {
+    // Only clear if we are opening fresh and no progress?
+    // Actually, openBook logic was: clear, then restore if progress.
+    // So consistent behavior is: always match storage or empty.
+    state.selectedIndices.clear();
+  }
+
+  renderTopicList();
+
+  // Update UI based on progress availability
+  if (progress) {
+    dom.resumeBtn.style.display = "flex";
+    dom.startBtn.innerHTML = `
+            <span class="material-symbols-rounded">play_arrow</span>
+            開始新遊戲
+        `;
+  } else {
+    dom.resumeBtn.style.display = "none";
+    dom.startBtn.innerHTML = `
+            <span class="material-symbols-rounded">play_arrow</span>
+            開始遊戲
+        `;
+  }
 }
 
 function renderTopicList() {
@@ -327,9 +403,8 @@ function setupEventListeners() {
 
   // Detail
   dom.detailThemeToggle.addEventListener("click", toggleTheme);
-  dom.startBtn.addEventListener("click", startGame);
-  dom.detailThemeToggle.addEventListener("click", toggleTheme);
-  dom.startBtn.addEventListener("click", startGame);
+  dom.startBtn.addEventListener("click", () => startGame(false)); // Start New
+  dom.resumeBtn.addEventListener("click", () => startGame(true)); // Resume
   dom.exitBtn.addEventListener("click", exitGame);
 
   // Game
@@ -378,27 +453,66 @@ function applyTheme(theme) {
 }
 
 // --- Game Logic ---
-function startGame() {
-  if (state.selectedIndices.size === 0) return;
-
+function startGame(isResume = false) {
   state.game.active = true;
 
-  // Create playlist from selected indices
-  const pool = Array.from(state.selectedIndices).map(
-    (idx) => state.activeBook.words[idx],
-  );
-  state.game.playlist = shuffle(pool);
-  state.game.currentIndex = -1;
+  if (isResume) {
+    // RESUME MODE
+    const progress = StorageManager.loadProgress(state.activeBook.id);
+    if (progress) {
+      state.game.playlist = progress.playlist;
+      state.game.currentIndex = progress.currentIndex;
+      // Restore selected indices for visual consistency if needed, though game is already built
+      state.selectedIndices = new Set(progress.originalIndices);
+    } else {
+      // Fallback if load fails
+      alert("無法讀取存檔，將開始新遊戲。");
+      startGame(false);
+      return;
+    }
+  } else {
+    // NEW GAME MODE
+    if (state.selectedIndices.size === 0) return;
+
+    // Create playlist
+    const pool = Array.from(state.selectedIndices).map(
+      (idx) => state.activeBook.words[idx],
+    );
+    state.game.playlist = shuffle(pool);
+    state.game.currentIndex = -1; // Will be incremented to 0 by nextQuestion logic if we used that, but here we set to start.
+
+    // Logic for new game setup
+    state.game.currentIndex = 0;
+    // Clear old progress
+    StorageManager.clearProgress(state.activeBook.id);
+    // Save INITIAL new progress
+    StorageManager.saveProgress(
+      state.activeBook.id,
+      state.game.playlist,
+      0,
+      state.selectedIndices,
+    );
+  }
 
   // UI Update
   dom.totalCountEl.textContent = state.game.playlist.length;
   navigateTo("game");
 
-  nextQuestion();
+  updateCardUI();
 }
 
 function exitGame() {
   state.game.active = false;
+  if (state.activeBook) {
+    // Save progress one last time to be sure
+    StorageManager.saveProgress(
+      state.activeBook.id,
+      state.game.playlist,
+      state.game.currentIndex,
+      state.selectedIndices,
+    );
+    updateWelcomeUI(state.activeBook.id);
+  }
   navigateTo("welcome");
   dom.cardEl.style.transform = "";
   dom.wordDisplay.textContent = "...";
@@ -408,12 +522,15 @@ function nextQuestion() {
   if (state.game.currentIndex < state.game.playlist.length - 1) {
     state.game.currentIndex++;
     updateCardUI();
+    // Save Progress
+    StorageManager.saveProgress(
+      state.activeBook.id,
+      state.game.playlist,
+      state.game.currentIndex,
+      state.selectedIndices,
+    );
   } else {
-    // End of game or just stop
-    // Optional: Show a "Finished" card or loop? User said "Stop the game (or handling end state) when all questions have been shown."
-    // For now, let's just not advance.
-    // Maybe show a simple alert or visual cue?
-    // Let's just do nothing if at the end for now, to follow "don't loop" strictly.
+    // End of game logic...
   }
 }
 
@@ -421,6 +538,13 @@ function prevQuestion() {
   if (state.game.currentIndex > 0) {
     state.game.currentIndex--;
     updateCardUI();
+    // Save Progress
+    StorageManager.saveProgress(
+      state.activeBook.id,
+      state.game.playlist,
+      state.game.currentIndex,
+      state.selectedIndices,
+    );
   }
 }
 
