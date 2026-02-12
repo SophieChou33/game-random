@@ -601,8 +601,13 @@ function initSwipeAttributes() {
     isDragging = false;
     const dx = currentX - startX;
     if (Math.abs(dx) > threshold) {
-      if (dx > 0) animateSwipeAndAction("right", nextQuestion);
-      else {
+      if (dx > 0) {
+        if (state.game.currentIndex < state.game.playlist.length - 1) {
+          animateSwipeAndAction("right", nextQuestion);
+        } else {
+          resetCardPosition();
+        }
+      } else {
         if (state.game.currentIndex > 0)
           animateSwipeAndAction("left", prevQuestion);
         else resetCardPosition();
